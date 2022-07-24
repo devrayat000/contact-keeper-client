@@ -56,6 +56,10 @@ export function getUser(id: string) {
   });
 }
 
+export function checkAuthenticated(id: string) {
+  return db.user.findUnique({ where: { id }, select: { id: true } });
+}
+
 export async function logout(request: Request) {
   return destroyUserSession(request);
 }
