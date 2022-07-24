@@ -45,7 +45,15 @@ export async function login({ email }: LoginParams) {
 }
 
 export function getUser(id: string) {
-  return db.user.findUnique({ where: { id } });
+  return db.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      createdAt: true,
+    },
+  });
 }
 
 export async function logout(request: Request) {
