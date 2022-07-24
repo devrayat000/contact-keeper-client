@@ -10,6 +10,10 @@ type RegisterParams = LoginParams & {
   hash: string;
 };
 
+export type AuthError = {
+  authError: string;
+};
+
 // Extraction -> Validation -> Encryption -> Saving -> Tokenizing
 export async function register({ name, email, hash }: RegisterParams) {
   const existingUser = await db.user.findUnique({
