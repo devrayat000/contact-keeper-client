@@ -9,9 +9,62 @@ import {
   Group,
   Button,
 } from "@mantine/core";
-import { Form, Link } from "@remix-run/react";
+import {
+  Form,
+  Link,
+  useActionData,
+  useSearchParams,
+  useTransition,
+} from "@remix-run/react";
+import type { ActionArgs } from "@remix-run/node";
+
+import {
+  type ParsedLoginError,
+  validateLoginParams,
+} from "~/services/validator.server";
+import { login } from "~/services/auth.server";
+import { validateHash } from "~/services/bcrypt.server";
+import { createUserSession } from "~/services/session.server";
+
+type ActionData = ParsedLoginError & { authError: string };
+
+export async function action({ request }: ActionArgs) {
+  const formData = await request.formData();
+  const params = Object.fromEntries(formData.entries());
+  const validatedResponse = validateLoginParams(params);
+
+  if (validatedResponse.status === "error") {
+    return validatedResponse;
+  }
+
+  const { email, password } = validatedResponse.data;
+  const user = await login({ email });
+  if ("authError" in user) {
+    return user;
+  }
+
+  const isPasswordCorrect = await validateHash(password, user.hash);
+  if (!isPasswordCorrect) return { authError: "Wrong password!" };
+
+  return createUserSession(user.id, formData.get("_next")?.toString()!);
+}
 
 export default function LoginPage() {
+  const actionData = useActionData<ActionData>();
+  const transition = useTransition();
+  const [params] = useSearchParams();
+
+  const loadTexts: any = {
+    actionRedirect: "Redirecting...",
+  };
+
+  const text =
+    transition.state === "submitting"
+      ? "Processing..."
+      : transition.state === "loading"
+      ? loadTexts[transition.type] || "Loading..."
+      : "Log In";
+
   return (
     <>
       <Title
@@ -30,13 +83,23 @@ export default function LoginPage() {
         </Anchor>
       </Text>
 
-      <Paper component={Form} withBorder shadow="md" p={30} mt={30} radius="md">
+      <Paper
+        component={Form}
+        method="post"
+        withBorder
+        shadow="md"
+        p={30}
+        mt={30}
+        radius="md"
+      >
+        <input type="hidden" name="_next" value={params.get("_next") ?? "/"} />
         <TextInput
           label="Email"
           type="email"
           placeholder="you@mantine.dev"
           required
           name="email"
+          error={actionData?.fieldErrors.email?.join("\n")}
         />
         <PasswordInput
           label="Password"
@@ -44,6 +107,7 @@ export default function LoginPage() {
           required
           mt="sm"
           name="password"
+          error={actionData?.fieldErrors.password?.join("\n")}
         />
         <Group position="apart" mt="md">
           <Checkbox label="Remember me" />
@@ -51,8 +115,13 @@ export default function LoginPage() {
             Forgot password?
           </Anchor>
         </Group>
+        {actionData?.authError && (
+          <Text color="red" mt="md">
+            {actionData.authError}
+          </Text>
+        )}
         <Button fullWidth mt="xl" type="submit">
-          Sign in
+          {text}
         </Button>
       </Paper>
     </>

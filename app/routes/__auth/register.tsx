@@ -118,7 +118,9 @@ export default function RegisterPage() {
           </Anchor>
         </Group>
         {actionData?.authError && (
-          <Text color="red">{actionData.authError}</Text>
+          <Text color="red" mt="md">
+            {actionData.authError}
+          </Text>
         )}
         <Button
           fullWidth
