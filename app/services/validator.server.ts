@@ -12,8 +12,8 @@ const registerSchema = loginSchema.extend({
   name: z.string().min(6, "Name must contain at least 6 character(s)"),
 });
 
-type Register = z.infer<typeof registerSchema>;
-type Login = z.infer<typeof loginSchema>;
+export type Register = z.infer<typeof registerSchema>;
+export type Login = z.infer<typeof loginSchema>;
 
 type ParsedSuccess<T> = { status: "ok"; data: T };
 type ParsedError<T> = { status: "error" } & z.typeToFlattenedError<T>;
@@ -29,7 +29,7 @@ export type ParsedRegisterResponse = ParsedResponse<Register>;
 export function validateLoginParams(params: any): ParsedLoginResponse {
   const parsed = loginSchema.safeParse(params);
   if (!parsed.success) {
-    return { status: "error", ...parsed.error.flatten() };
+    return Object.assign(parsed.error.flatten(), { status: "error" as const });
   }
   return { status: "ok", data: parsed.data };
 }
@@ -37,7 +37,7 @@ export function validateLoginParams(params: any): ParsedLoginResponse {
 export function validateRegisterParams(params: any): ParsedRegisterResponse {
   const parsed = registerSchema.safeParse(params);
   if (!parsed.success) {
-    return { status: "error", ...parsed.error.flatten() };
+    return Object.assign(parsed.error.flatten(), { status: "error" as const });
   }
   return { status: "ok", data: parsed.data };
 }

@@ -14,13 +14,17 @@ import type { ActionArgs } from "@remix-run/node";
 
 import {
   type ParsedRegisterError,
+  type Register,
   validateRegisterParams,
 } from "~/services/validator.server";
 import { hashPassword } from "~/services/bcrypt.server";
 import { register } from "~/services/auth.server";
 import { createUserSession } from "~/services/session.server";
 
-type ActionData = ParsedRegisterError & { authError: string };
+type ActionData = ParsedRegisterError & {
+  authError?: string;
+  values?: Partial<Register>;
+};
 
 export async function action({ request }: ActionArgs) {
   const formData = await request.formData();
@@ -28,7 +32,7 @@ export async function action({ request }: ActionArgs) {
   const validatedResponse = validateRegisterParams(params);
 
   if (validatedResponse.status === "error") {
-    return validatedResponse;
+    return Object.assign(validatedResponse, { values: params });
   }
 
   const { email, name, password } = validatedResponse.data;
@@ -91,6 +95,7 @@ export default function RegisterPage() {
           variant="filled"
           name="name"
           error={actionData?.fieldErrors.name?.join("\n")}
+          defaultValue={actionData?.values?.name}
         />
         <TextInput
           label="Email"
@@ -101,6 +106,7 @@ export default function RegisterPage() {
           mt="sm"
           name="email"
           error={actionData?.fieldErrors.email?.join("\n")}
+          defaultValue={actionData?.values?.email}
         />
         <PasswordInput
           label="Password"
@@ -110,6 +116,7 @@ export default function RegisterPage() {
           mt="sm"
           name="password"
           error={actionData?.fieldErrors.password?.join("\n")}
+          defaultValue={actionData?.values?.password}
         />
         <Group position="apart" mt="md">
           <Checkbox label="Remember me" />

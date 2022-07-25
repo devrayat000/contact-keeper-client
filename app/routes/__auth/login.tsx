@@ -20,13 +20,17 @@ import type { ActionArgs } from "@remix-run/node";
 
 import {
   type ParsedLoginError,
+  type Login,
   validateLoginParams,
 } from "~/services/validator.server";
 import { login } from "~/services/auth.server";
 import { validateHash } from "~/services/bcrypt.server";
 import { createUserSession } from "~/services/session.server";
 
-type ActionData = ParsedLoginError & { authError: string };
+type ActionData = ParsedLoginError & {
+  authError?: string;
+  values?: Partial<Login>;
+};
 
 export async function action({ request }: ActionArgs) {
   const formData = await request.formData();
@@ -34,7 +38,7 @@ export async function action({ request }: ActionArgs) {
   const validatedResponse = validateLoginParams(params);
 
   if (validatedResponse.status === "error") {
-    return validatedResponse;
+    return Object.assign(validatedResponse, { values: params });
   }
 
   const { email, password } = validatedResponse.data;
@@ -92,23 +96,31 @@ export default function LoginPage() {
         mt={30}
         radius="md"
       >
-        <input type="hidden" name="_next" value={params.get("_next") ?? "/"} />
-        <TextInput
-          label="Email"
-          type="email"
-          placeholder="you@mantine.dev"
-          required
-          name="email"
-          error={actionData?.fieldErrors.email?.join("\n")}
-        />
-        <PasswordInput
-          label="Password"
-          placeholder="Your password"
-          required
-          mt="sm"
-          name="password"
-          error={actionData?.fieldErrors.password?.join("\n")}
-        />
+        <fieldset disabled={transition.state === "submitting"}>
+          <input
+            type="hidden"
+            name="_next"
+            value={params.get("_next") ?? "/"}
+          />
+          <TextInput
+            label="Email"
+            type="email"
+            placeholder="you@mantine.dev"
+            required
+            name="email"
+            error={actionData?.fieldErrors.email?.join("\n")}
+            defaultValue={actionData?.values?.email}
+          />
+          <PasswordInput
+            label="Password"
+            placeholder="Your password"
+            required
+            mt="sm"
+            name="password"
+            error={actionData?.fieldErrors.password?.join("\n")}
+            defaultValue={actionData?.values?.password}
+          />
+        </fieldset>
         <Group position="apart" mt="md">
           <Checkbox label="Remember me" />
           <Anchor component={Link} to="#" size="sm">
